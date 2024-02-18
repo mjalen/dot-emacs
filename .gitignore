@@ -1,0 +1,7 @@
+auto-save-list/
+	config.el
+	config.org~
+	eln-cache/
+	init.el~
+	old.org
+	recentf

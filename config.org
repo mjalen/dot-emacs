@@ -1,0 +1,343 @@
+#+title: Emacs Config
+#+author: Jalen Moore
+
+My personal emacs configuration.
+
+* TODOs
+
+- Clean up the mess that is my config.
+- Eliminate the need for modifier keys. I should be able to do everything without the use of Ctrl
+- Add key bind to traverse up in ~vertico~ while finding a file.
+- Change terminal to one that works well with ~god-mode~.
+
+* Preamble
+** Lexical scope
+
+Inspired by [[https://blog.sumtypeofway.com/posts/emacs-config.html][this blog post]]. Adds lexical scope to the configuration.
+
+#+begin_src emacs-lisp
+  ;; -*- coding: utf-8; lexical-binding: t -*-
+#+end_src
+
+** Helper Functions
+
+Different functions to do common tasks.
+
+#+begin_src emacs-lisp
+  ; A function I can hook to different modes when I don't want line numbers.
+  (defun mjalen/remove_line_numbers ()
+    (interactive)
+    (display-line-numbers-mode 0))
+#+end_src
+
+** Misc.
+
+Get rid of a bunch of UI, we don't need it!
+
+#+begin_src emacs-lisp
+  (setq inhibit-startup-screen t
+	use-package-always-ensure t
+	initial-scratch-message nil
+	sentence-end-double-space nil
+	ring-bell-function 'ignore
+	use-dialog-box nil
+	mark-even-if-inactive nil
+	default-directory "~"
+	display-line-numbers-mode 1
+	load-prefer-newer t)
+
+  (setq-default indent-tabs-mode nil)
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tooltip-mode -1)
+  (delete-selection-mode t)
+
+  (use-package exec-path-from-shell
+    :init (exec-path-from-shell-initialize))
+
+  (set-charset-priority 'unicode)
+  (prefer-coding-system 'utf-8-unix)
+
+  (use-package s)
+  (use-package dash)
+
+  (setq read-process-output-max (* 1024 1024))
+#+end_src
+
+** Garbage Collection
+
+#+begin_src emacs-lisp
+  (setq gc-cons-threshold 1000000000
+        create-lockfiles nil
+        make-backup-files nil
+        create-lockfiles nil
+        delete-by-moving-to-trash t)
+
+  (setq custom-file (make-temp-name "/tmp/")
+        custom-safe-themes t)
+
+  (use-package recentf
+    :config
+    (add-to-list 'recentf-exclude "\\elpa")
+    (add-to-list 'recentf-exclude "private/tmp")
+    (recentf-mode))
+
+  ; remove whitespace
+  (add-hook 'before-save-hook #'delete-trailing-whitespace)
+  (setq require-final-newline t)
+#+end_src
+
+** Lines
+
+#+begin_src emacs-lisp
+  (global-display-line-numbers-mode)
+  (column-number-mode t)
+  (setq auto-fill-mode t
+        global-visual-fill-column-mode nil)
+  (global-visual-line-mode t)
+  (blink-cursor-mode t)
+  (set-display-table-slot standard-display-table 'wrap ?\ )
+
+  (require 'hl-line)
+#+end_src
+
+* GOD Mode
+
+I am trying out *god-mode* instead of *evil-mode*. We'll see how much I like it. It is taking a little bit to get used to, because I have built so much Vim muscle memory.
+
+#+begin_src emacs-lisp
+  (use-package god-mode
+    :custom
+    (god-exempt-major-modes nil)
+    (god-exempt-predicates nil)
+    :config
+    (bind-key "<escape>" #'god-mode-all)
+    (custom-set-faces
+     '(god-mode-lighter ((t (:inherit error))))))
+
+  (define-key god-local-mode-map (kbd "z") #'repeat)
+  (define-key god-local-mode-map (kbd "i") #'god-local-mode)
+
+  (global-set-key (kbd "C-x C-1") #'delete-other-windows)
+  (global-set-key (kbd "C-x C-2") #'split-window-below)
+  (global-set-key (kbd "C-x C-3") #'split-window-right)
+  (global-set-key (kbd "C-x C-0") #'delete-window)
+
+  (define-key god-local-mode-map (kbd "[") #'backward-paragraph)
+  (define-key god-local-mode-map (kbd "]") #'forward-paragraph)
+#+end_src
+
+* Theme
+** Baseline
+
+I *had* to switch over to the ~modus-vivendi~ theme. It may be ugly, but my eyes feel much better. Future me: the theme has honestly grown on me. It is very pleasant to look at for long periods of time.
+
+#+begin_src emacs-lisp
+  (load-theme 'modus-vivendi t)
+
+  (set-frame-parameter nil 'alpha-background 90)
+  (add-to-list 'default-frame-alist '(alpha-background . 90))
+#+end_src
+
+** Icons
+
+#+begin_src emacs-lisp
+  (use-package all-the-icons)
+  (use-package all-the-icons-dired
+    :after all-the-icons
+    :hook (dired-mode . all-the-icons-dired-mode))
+#+end_src
+
+** Modeline
+
+A nice modeline that cleans up the clutter.
+
+#+begin_src emacs-lisp
+  (use-package diminish
+    :config
+    (diminish 'visual-line-mode))
+
+  (use-package mood-line
+    :config (mood-line-mode))
+#+end_src
+
+** Dimmer
+
+This essentially dims non-active buffers. Makes the current buffer more apparent.
+
+#+begin_src emacs-lisp
+  (use-package dimmer
+    :custom (dimmer-fraction 0.3)
+    :config (dimmer-mode))
+#+end_src
+
+** Delimiters
+
+Make delimiters and parentheses easier to follow
+
+#+begin_src emacs-lisp
+  (use-package paren
+    :config (show-paren-mode)
+    :custom (show-paren-style 'expression))
+
+  (use-package rainbow-delimiters
+    :hook ((prog-mode . rainbow-delimiters-mode)))
+#+end_src
+
+** Fonts
+
+#+begin_src emacs-lisp
+  (add-to-list 'default-frame-alist '(font . "Victor Mono-12"))
+  (set-frame-font "Victor Mono-12")
+#+end_src
+
+** Indent Guides
+
+#+begin_src emacs-lisp
+  (use-package highlight-indent-guides
+    :custom
+    (highlight-indent-guides-method 'bitmap)
+    :config
+    (set-face-background 'highlight-indent-guides-odd-face "ffffff")
+    (set-face-background 'highlight-indent-guides-even-face "ffffff")
+    (set-face-foreground 'highlight-indent-guides-character-face "ffffff")
+    (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
+ #+end_src
+
+* Keybinds
+
+#+begin_src emacs-lisp
+  ;; first we unbind
+  (-map (lambda (x) (unbind-key x)) '("C-x C-d"
+                                      "M-o"
+                                      "<mouse-2>"
+                                      "<C-wheel-down>"
+                                      "<C-wheel-up>"
+                                      "s-n"
+                                      "C-x C-q"
+                                      "C-c C-k"))
+
+  (bind-key "C-c /" #'comment-dwim)
+  (bind-key "C-c C-'" #'org-edit-src-exit)
+
+  (use-package which-key
+    :init (which-key-mode)
+    :diminish which-key-mode
+    :config
+    (setq which-key-idle-delay 0.2)
+    (which-key-enable-god-mode-support))
+#+end_src
+
+* Completion
+
+I used to use Helm, but it doesn't really work well with god-mode and was giving me RSI. So I am using vertico now since I can enter god-mode from within it :) I may or may not add more completion packages (orderless for example) as the need arises.
+
+#+begin_src emacs-lisp
+  (setq read-file-name-completion-ignore-case t
+        read-buffer-completion-ignore-case t
+        completion-styles '(basic initials partial-completion substring)
+        completion-category-defaults nil
+        competion-show-help nil
+        tab-always-indent 'complete)
+
+  (use-package vertico
+    :init
+    (vertico-mode))
+#+end_src
+
+* Tools
+** Snippets
+
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :custom
+    (yas-snippet-dirs
+     '("~/.emacs.d/snippets"))
+    :config
+    (yas-global-mode 1))
+#+end_src
+
+** TODO Org
+
+My org mode configuration, so I can live and breathe org.
+
+#+begin_src emacs-lisp
+  (use-package org
+    :hook
+    ((org-mode . variable-pitch-mode)
+     (org-mode . visual-line-mode)
+     (org-mode . mjalen/remove_line_numbers))
+    :bind
+    (:map org-mode-map
+          ("C-c C-'" . #'org-edit-special)) ; For convenience with god mode. c' instead of c '.
+    :custom
+    (org-hide-emphasis-markers t)
+    (line-spacing 2)
+    (org-highlight-latex-and-related '(latex script entitles))
+    (org-list-allow-alphabetical t)
+    (org-startup-indented t)
+    (org-pretty-entities t)
+    (org-use-sub-superscripts "{}")
+    (org-hide-emphasis-markers t)
+    (org-startup-with-inline-images t)
+    (org-image-actual-width '(300))
+    :config
+    (setq org-ellipsis " ▾"))
+
+  (use-package org-appear :hook (org-mode . org-appear-mode))
+
+  (use-package toc-org
+    :hook
+    ((org-mode . toc-org-mode)
+     (markdown-mode . toc-org-mode)))
+
+  (use-package org-fragtog
+    :after org
+    :custom
+    (org-startup-with-latex-preview t)
+    :hook
+    (org-mode . org-fragtog-mode)
+    :custom
+    (org-format-latex-options
+     (plist-put org-format-latex-options :scale 0.8)
+     (plist-put org-format-latex-options :foreground 'auto)
+     (plist-put org-format-latex-options :background 'auto)))
+
+  (use-package org-superstar
+    :after org
+    :hook (org-mode . org-superstar-mode)
+    :custom
+    (org-superstar-remove-leading-stars t)
+    (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+  (use-package org-modern
+    :hook
+    (org-mode . global-org-modern-mode)
+    :custom
+    (org-modern-keyword nil)
+    (org-modern-checkbox nil)
+    (org-modern-table nil))
+
+  (use-package markdown-mode)
+#+end_src
+
+** LaTeX
+
+#+begin_src emacs-lisp
+(setq TeX-auto-save t
+      Tex-parse-self t)
+
+(setq-default TeX-master nil)
+
+(use-package flyspell)
+
+(add-hook 'TeX-mode-hook 'turn-on-reftex)
+(use-package latex-pretty-symbols)
+#+end_src
+
+** Term
+
+#+begin_src emacs-lisp
+  (add-hook 'term-mode-hook 'mjalen/remove_line_numbers)
+#+end_src
