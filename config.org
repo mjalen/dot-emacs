@@ -231,19 +231,17 @@ Make delimiters and parentheses easier to follow
 
 * Completion
 
-I used to use Helm, but it doesn't really work well with god-mode and was giving me RSI. So I am using vertico now since I can enter god-mode from within it :) I may or may not add more completion packages (orderless for example) as the need arises.
+I used to use Helm, but it doesn't really work well with god-mode and was giving me RSI. So I am using vertico now since I can enter god-mode from within it :)
 
 #+begin_src emacs-lisp
+  (use-package vertico :init (vertico-mode)) ; Vertical display of completion options.
+  (use-package orderless) ; Actual completion style.
+  (use-package marginalia :init (marginalia-mode)) ; Displays margin info to the right of completion options.
+
   (setq read-file-name-completion-ignore-case t
         read-buffer-completion-ignore-case t
-        completion-styles '(basic initials partial-completion substring)
-        completion-category-defaults nil
-        competion-show-help nil
-        tab-always-indent 'complete)
-
-  (use-package vertico
-    :init
-    (vertico-mode))
+        completion-styles '(orderless basic)
+        completion-category-defaults '((file (styles basic partial-completion))))
 #+end_src
 
 * Tools
@@ -271,19 +269,17 @@ My org mode configuration, so I can live and breathe org.
     :bind
     (:map org-mode-map
           ("C-c C-'" . #'org-edit-special)) ; For convenience with god mode. c' instead of c '.
-    :custom
-    (org-hide-emphasis-markers t)
-    (line-spacing 2)
-    (org-highlight-latex-and-related '(latex script entitles))
-    (org-list-allow-alphabetical t)
-    (org-startup-indented t)
-    (org-pretty-entities t)
-    (org-use-sub-superscripts "{}")
-    (org-hide-emphasis-markers t)
-    (org-startup-with-inline-images t)
-    (org-image-actual-width '(300))
     :config
-    (setq org-ellipsis " ▾"))
+    (setq org-ellipsis " ▾"
+          org-hide-emphasis-markers t
+          line-spacing 2
+          org-highlight-latex-and-related '(latex script entitles)
+          org-list-allow-alphabetical t
+          org-startup-indented t
+          org-pretty-entities t
+          org-use-sub-superscripts "{}"
+          org-startup-with-inline-images t
+          org-image-actual-width '(300)))
 
   (use-package org-appear :hook (org-mode . org-appear-mode))
 
