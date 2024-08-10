@@ -102,30 +102,12 @@ Get rid of a bunch of UI, we don't need it!
   (require 'hl-line)
 #+end_src
 
-* GOD Mode
-
-I am trying out *god-mode* instead of *evil-mode*. We'll see how much I like it. It is taking a little bit to get used to, because I have built so much Vim muscle memory.
+* Evil Mode
 
 #+begin_src emacs-lisp
-  (use-package god-mode
-    :custom
-    (god-exempt-major-modes nil)
-    (god-exempt-predicates nil)
+  (use-package evil
     :config
-    (bind-key "<escape>" #'god-mode-all)
-    (custom-set-faces
-     '(god-mode-lighter ((t (:inherit error))))))
-
-  (define-key god-local-mode-map (kbd "z") #'repeat)
-  (define-key god-local-mode-map (kbd "i") #'god-local-mode)
-
-  (global-set-key (kbd "C-x C-1") #'delete-other-windows)
-  (global-set-key (kbd "C-x C-2") #'split-window-below)
-  (global-set-key (kbd "C-x C-3") #'split-window-right)
-  (global-set-key (kbd "C-x C-0") #'delete-window)
-
-  (define-key god-local-mode-map (kbd "[") #'backward-paragraph)
-  (define-key god-local-mode-map (kbd "]") #'forward-paragraph)
+    (evil-mode 1))
 #+end_src
 
 * Theme
@@ -188,8 +170,8 @@ Make delimiters and parentheses easier to follow
 ** Fonts
 
 #+begin_src emacs-lisp
-  (add-to-list 'default-frame-alist '(font . "Victor Mono-12"))
-  (set-frame-font "Victor Mono-12")
+  (add-to-list 'default-frame-alist '(font . "Victor Mono"))
+  (set-frame-font "Victor Mono")
 #+end_src
 
 ** Indent Guides
@@ -336,4 +318,11 @@ My org mode configuration, so I can live and breathe org.
 
 #+begin_src emacs-lisp
   (add-hook 'term-mode-hook 'mjalen/remove_line_numbers)
+#+end_src
+
+** Nix
+
+#+begin_src emacs-lisp
+  (use-package nix-mode
+    :mode "\\.nix\\'")
 #+end_src
