@@ -1,14 +1,14 @@
 #+title: Emacs Config
 #+author: Jalen Moore
 
-My personal emacs configuration.
+My personal emacs configuration. Still a work in progress.
+-----
 
 * TODOs
 
 - Clean up the mess that is my config.
 - Eliminate the need for modifier keys. I should be able to do everything without the use of Ctrl
 - Add key bind to traverse up in ~vertico~ while finding a file.
-- Change terminal to one that works well with ~god-mode~.
 
 * Preamble
 ** Lexical scope
@@ -102,31 +102,142 @@ Get rid of a bunch of UI, we don't need it!
   (require 'hl-line)
 #+end_src
 
-* GOD Mode
-
-I am trying out *god-mode* instead of *evil-mode*. We'll see how much I like it. It is taking a little bit to get used to, because I have built so much Vim muscle memory.
+* Evil Mode
 
 #+begin_src emacs-lisp
-  (use-package god-mode
-    :custom
-    (god-exempt-major-modes nil)
-    (god-exempt-predicates nil)
+  (use-package evil
     :config
-    (bind-key "<escape>" #'god-mode-all)
-    (custom-set-faces
-     '(god-mode-lighter ((t (:inherit error))))))
-
-  (define-key god-local-mode-map (kbd "z") #'repeat)
-  (define-key god-local-mode-map (kbd "i") #'god-local-mode)
-
-  (global-set-key (kbd "C-x C-1") #'delete-other-windows)
-  (global-set-key (kbd "C-x C-2") #'split-window-below)
-  (global-set-key (kbd "C-x C-3") #'split-window-right)
-  (global-set-key (kbd "C-x C-0") #'delete-window)
-
-  (define-key god-local-mode-map (kbd "[") #'backward-paragraph)
-  (define-key god-local-mode-map (kbd "]") #'forward-paragraph)
+    (evil-mode 1))
 #+end_src
+
+* Projectile
+
+#+begin_src emacs-lisp
+  (use-package projectile
+    :config
+    (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
+#+end_src
+
+* Tree Sitter + LSP
+
+##+begin_src emacs-lisp
+  (use-package tree-sitter
+    :hook
+    (common-lisp-mode . tree-sitter-mode)
+    (rust-mode . tree-sitter-mode))
+
+  (use-package tree-sitter-langs)
+
+
+  (use-package corfu
+    :ensure t
+    :custom
+    (corfu-cycle t)
+    (corfu-auto t)
+    (corfu-auto-prefix 2)
+    (corfu-auto-delay 0)
+    (corfu-popupinfo-delay '(0.5 . 0.2))
+    (corfu-preview-current 'insert)
+    (corfu-preselect 'prompt)
+    :bind (:map corfu-map
+                ("M-SPC" . corfu-insert-seperator)
+                ("TAB" . corfu-next)
+                ([tab] . corfu-next)
+                ("M-TAB" . corfu-previous)
+                ([backtab] . corfu-previous)
+                ("S-<return>" . corfu-insert)
+                ("RET" . corfu-insert))
+    :config
+    (global-corfu-mode)
+    (corfu-history-mode)
+    (corfu-popupinfo-mode)
+    :config
+    (add-hook 'eshell-mode-hook
+              (lambda () (setq-local corfu-quit-at-boundary t
+                                     corfu-quit-no-match t
+                                     corfu-auto nil)
+                (corfu-mode))
+              nil
+              t))
+
+  ; linter
+  (use-package flycheck
+    :ensure t
+    :init (global-flycheck-mode)
+    :bind (:map flycheck-mode-map
+                ("M-n" . flycheck-next-error)
+                ("M-p" . flycheck-previous-error)))
+
+  (use-package lsp-mode
+    :diminish "LSP"
+    :ensure t
+    :hook ((lsp-mode . lsp-diagnostics-mode)
+           (lsp-mode . lsp-enable-which-key-integration)
+           ((common-lisp-mode) . lsp-deferred))
+    :custom
+    (lsp-keymap-prefix "C-c l")
+    (lsp-completion-provider :none)       ; Using Corfu as the provider
+    (lsp-diagnostics-provider :flycheck)
+    (lsp-session-file (locate-user-emacs-file ".lsp-session"))
+    (lsp-log-io nil) ; IMPORTANT! Use only for debugging! Drastically affects performance
+    (lsp-keep-workspace-alive nil) ; Close LSP server if all project buffers are closed
+    (lsp-idle-delay 0.5)    ; Debounce timer for `after-change-function'
+    ;; core
+    (lsp-enable-xref t)        ; Use xref to find references
+    (lsp-auto-configure t) ; Used to decide between current active servers
+    (lsp-eldoc-enable-hover t) ; Display signature information in the echo area
+    (lsp-enable-dap-auto-configure t)     ; Debug support
+    (lsp-enable-file-watchers nil)
+    (lsp-enable-folding nil)     ; I disable folding since I use origami
+    (lsp-enable-imenu t)
+    (lsp-enable-indentation nil)    ; I use prettier
+    (lsp-enable-links nil)          ; No need since we have `browse-url'
+    (lsp-enable-on-type-formatting nil)   ; Prettier handles this
+    (lsp-enable-suggest-server-download t) ; Useful prompt to download LSP providers
+    (lsp-enable-symbol-highlighting t) ; Shows usages of symbol at point in the current buffer
+    (lsp-enable-text-document-color nil)  ; This is Treesitter's job
+
+    (lsp-ui-sideline-show-hover nil) ; Sideline used only for diagnostics
+    (lsp-ui-sideline-diagnostic-max-lines 20) ; 20 lines since typescript errors can be quite big
+    ;; completion
+    (lsp-completion-enable t)
+    (lsp-completion-enable-additional-text-edit t) ; Ex: auto-insert an import for a completion candidate
+    (lsp-enable-snippet t)    ; Important to provide full JSX completion
+    (lsp-completion-show-kind t)             ; Optional
+    ;; headerline
+    (lsp-headerline-breadcrumb-enable t) ; Optional, I like the breadcrumbs
+    (lsp-headerline-breadcrumb-enable-diagnostics nil) ; Don't make them red, too noisy
+    (lsp-headerline-breadcrumb-enable-symbol-numbers nil)
+    (lsp-headerline-breadcrumb-icons-enable nil)
+    ;; modeline
+    (lsp-modeline-code-actions-enable nil) ; Modeline should be relatively clean
+    (lsp-modeline-diagnostics-enable nil) ; Already supported through `flycheck'
+    (lsp-modeline-workspace-status-enable nil) ; Modeline displays "LSP" when lsp-mode is enabled
+    (lsp-signature-doc-lines 1) ; Don't raise the echo area. It's distracting
+    (lsp-ui-doc-use-childframe t)        ; Show docs for symbol at point
+    (lsp-eldoc-render-all nil) ; This would be very useful if it would respect `lsp-signature-doc-lines', currently it's distracting
+    ;; lens
+    (lsp-lens-enable nil)                 ; Optional, I don't need it
+    ;; semantic
+    (lsp-semantic-tokens-enable nil) ; Related to highlighting, and we defer to treesitter
+
+    :init
+    (setq lsp-use-plists t))
+
+  (use-package lsp-ui
+    :ensure t
+    :commands
+    (lsp-ui-doc-show
+     lsp-ui-doc-glance)
+    :bind (:map lsp-mode-map
+                ("C-c C-d" . 'lsp-ui-doc-glance))
+    :after (lsp-mode evil)
+    :config (setq lsp-ui-doc-enable t
+                  evil-lookup-func #'lsp-ui-doc-glance
+                  lsp-ui-doc-show-with-cursor nil
+                  lsp-ui-doc-include-signature t
+                  lsp-ui-doc-position 'at-point))
+##+end_src
 
 * Theme
 ** Baseline
@@ -205,6 +316,14 @@ Make delimiters and parentheses easier to follow
     (add-hook 'prog-mode-hook 'highlight-indent-guides-mode))
  #+end_src
 
+** Dired
+
+#+begin_src emacs-lisp
+  (progn
+    (use-package all-the-icons-dired)
+    (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+#+end_src
+
 * Keybinds
 
 #+begin_src emacs-lisp
@@ -230,8 +349,6 @@ Make delimiters and parentheses easier to follow
 #+end_src
 
 * Completion
-
-I used to use Helm, but it doesn't really work well with god-mode and was giving me RSI. So I am using vertico now since I can enter god-mode from within it :)
 
 #+begin_src emacs-lisp
   (use-package vertico :init (vertico-mode)) ; Vertical display of completion options.
@@ -313,6 +430,7 @@ My org mode configuration, so I can live and breathe org.
     :custom
     (org-modern-keyword nil)
     (org-modern-checkbox nil)
+    (org-pretty-entities)
     (org-modern-table nil))
 
   (use-package markdown-mode)
@@ -336,4 +454,50 @@ My org mode configuration, so I can live and breathe org.
 
 #+begin_src emacs-lisp
   (add-hook 'term-mode-hook 'mjalen/remove_line_numbers)
+#+end_src
+
+** CL/Slime
+
+#+begin_src emacs-lisp
+  ;;; (use-package corfu
+  ;;;   :ensure t
+  ;;;   :custom
+  ;;;   (corfu-cycle t)
+  ;;;   (corfu-auto t)
+  ;;;   (corfu-auto-prefix 2)
+  ;;;   (corfu-auto-delay 0)
+  ;;;   (corfu-popupinfo-delay '(0.5 . 0.2))
+  ;;;   (corfu-preview-current 'insert)
+  ;;;   (corfu-preselect 'prompt)
+  ;;;   :bind (:map corfu-map
+  ;;;               ("M-SPC" . corfu-insert-seperator)
+  ;;;               ("TAB" . corfu-next)
+  ;;;               ([tab] . corfu-next)
+  ;;;               ("M-TAB" . corfu-previous)
+  ;;;               ([backtab] . corfu-previous)
+  ;;;               ("S-<return>" . corfu-insert)
+  ;;;               ("RET" . corfu-insert))
+  ;;;   :config
+  ;;;   (global-corfu-mode)
+  ;;;   (corfu-history-mode)
+  ;;;   (corfu-popupinfo-mode)
+  ;;;   :config
+  ;;;   (add-hook 'eshell-mode-hook
+  ;;;             (lambda () (setq-local corfu-quit-at-boundary t
+  ;;;                                    corfu-quit-no-match t
+  ;;;                                    corfu-auto nil)
+  ;;;               (corfu-mode))
+  ;;;             nil
+  ;;;             t))
+
+  (use-package slime
+    :hook
+    (slime-mode . (lambda ()
+                    (unless (slime-connected-p)
+                      (save-excursion (slime)))))
+    :custom
+    (slime-setup '(slime-fancy slime-quicklisp slime-asdf)))
+
+
+  (setq inferior-lisp-program "sbcl")
 #+end_src
